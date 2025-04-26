@@ -61,7 +61,7 @@
     #   publicHostKey = "c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSVBkZ0VGYWxRUVBEd2Focy85bmlMVDlRRnpiQmVrMmsvQzc3NkY4bmpxUzAgcm9vdEBuaXhvcwo=";
     # }
     {
-      hostName = "surya.tapir-bleak.ts.net";
+      hostName = "100.69.224.31";
       system = "x86_64-linux";
       protocol = "ssh-ng";
       sshUser = "remotebuild";
