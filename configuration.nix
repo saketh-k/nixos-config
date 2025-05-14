@@ -9,8 +9,25 @@
       ./hardware-configuration.nix ];
 
   # Bootloader.
-  boot.loader.systemd-boot.enable = true; 
-  boot.loader.efi.canTouchEfiVariables = true;
+  boot.loader = {
+    efi = {
+      canTouchEfiVariables = true;
+    };
+    grub = {
+      enable=true;
+      efiSupport = true;
+      device="nodev";
+      #splashMode= "stretch";
+      #splashImage= ./Logo_Windows_xp.png;
+      #gfxmodeEfi = "1920x1440";
+      gfxpayloadEfi="keep";
+      theme = (pkgs.sleek-grub-theme.override {
+        withStyle = "dark";
+        withBanner = "Select NixOS Generation";
+      });
+      fontSize = 32;
+    };
+  };
 
   networking.hostName = "laptop"; # Define your hostname.
   networking.nameservers = [ "1.1.1.1" "1.0.0.1" ];
@@ -44,7 +61,7 @@
   nix.settings.experimental-features = [ "nix-command" "flakes"];
 
   # Distributed Builds settings = true;
-  nix.distributedBuilds = true;
+  #nix.distributedBuilds = true;
   nix.extraOptions = ''
     builders-use-substitutes = true
     '';
@@ -260,6 +277,7 @@
   xorg.xmodmap
   fprintd
   wine
+  sleek-grub-theme
   (lutris.override {
     extraPkgs = pkgs: [
       wine
@@ -269,6 +287,23 @@
   ];
 
   programs.steam.enable = true;
+
+  programs._1password.enable=true;
+  programs._1password-gui = {
+    enable = true;
+    polkitPolicyOwners = [ "saketh" ];
+  };
+  # Enable zen browser support for 1password!
+
+  environment.etc ={
+    "1password/custom_allower_browsers" = {
+      text = ''
+        .zen-wrapped
+        zen
+      '';
+      mode="0755";
+    };
+  };
 
   # Some programs need SUID wrappers, can be configured further or are 
   # started in user sessions. programs.mtr.enable = true; 

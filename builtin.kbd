@@ -17,7 +17,7 @@
     l_alt   (tap-next-release l ralt)
     sem_met (tap-next-release ; lmet)
 
-    caps_esc (tap-hold-next-release 200 esc caps)
+    esc_ctl (tap-next-release esc lctl)
   )
 
   (defsrc
@@ -31,7 +31,7 @@
   (deflayer qwerty
     grv  1    2      3      4      5      6 7 8       9      0    -    =    bspc
     tab  q    w      e      r      t      y u i       o      p    [    ]    \
-    @caps_esc @a_met @s_alt @d_ctl @f_sft g h @j_sft   @k_ctl  @l_alt @sem_met  ' ret
+    @esc_ctl @a_met @s_alt @d_ctl @f_sft g h @j_sft   @k_ctl  @l_alt @sem_met  ' ret
     lsft      z      x      c      v     b n m , . / rsft 
                              pgup  up  pgdn
     lctl lmet lalt  spc bspc rctl left down
