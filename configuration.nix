@@ -29,7 +29,7 @@
     };
   };
 
-  networking.hostName = "laptop"; # Define your hostname.
+  networking.hostName = "fw-laptop"; # Define your hostname.
   networking.nameservers = [ "1.1.1.1" "1.0.0.1" ];
   # networking.wireless.enable = true; # Enables wireless support via 
   # wpa_supplicant.
@@ -115,11 +115,36 @@
   services.xserver.enable = true;
 
   # Enable the GNOME Desktop Environment.
-  services.xserver.displayManager.gdm.enable = true; 
+  #services.xserver.displayManager.gdm.enable = true; 
   services.xserver.desktopManager.gnome.enable = true;
+  services.logind.extraConfig = ''
+    IdleAction=sleep
+    IdleActionSec=300
+    HandlePowerKey=suspend
+  '';
+  services.greetd = {
+    enable = true;
+    settings = {
+      default_session = {
+        command = "${pkgs.greetd.tuigreet}/bin/tuigreet --remember --time --cmd sway --theme \'border=magenta;text=cyan;prompt=green;action=blue;button=cyan\'";
+        user = "greeter";
+      };
+    };
+  };
+
+  systemd.services.greetd.serviceConfig = {
+    Type = "idle";
+    StandardInput = "tty";
+    StandardOutput = "journal";
+    StandardError = "journal"; # Without this errors will spam on screen
+    # Without these bootlogs will spam on screen
+    TTYReset = true;
+    TTYVHangup = true;
+    TTYVTDisallocate = true;
+  };
 
   #Enable gnome secrets vault
-  services.gnome.gnome-keyring.enable = true;
+  #services.gnome.gnome-keyring.enable = true;
 
   # fonts
   fonts.packages = with pkgs; [
@@ -145,25 +170,54 @@
 
   # Set kmonad keymap with out of store symlink
   hardware.uinput.enable = true;
-  systemd.services.kmonad = {
-    description = "Kmonad";
-    wantedBy = [ "multi-user.target" ];
-    serviceConfig = {
-      ExecStart = "${pkgs.kmonad}/bin/kmonad /etc/kmonad/config.kbd";
-      Restart = "always";
-    };
-  };
-  #services.kmonad = {
-  #  enable = true;
-  #  keyboards = {
-  #      builtin = {
-  #        device = "/dev/input/by-path/platform-i8042-serio-0-event-kbd";
-  #        # Make config file /home/saketh/sys-config/builtin.kbd;
-  #        config = "/etc/kmonad/config.kbd";
-  #      };
+  # systemd.services.kmonad = {
+  #  description = "Kmonad";
+  #  wantedBy = [ "multi-user.target" ];
+  #  serviceConfig = {
+  #    ExecStart = "${pkgs.kmonad}/bin/kmonad /etc/kmonad/config.kbd";
+  #    Restart = "always";
   #  };
-  #	
-  #};
+  # };
+  #
+  services.kmonad = {
+   enable = true;
+   keyboards = {
+       builtin = {
+         device = "/dev/input/by-path/platform-i8042-serio-0-event-kbd";
+         # Make config file /home/saketh/sys-config/builtin.kbd;
+         config = ''
+(defcfg
+  input (device-file "/dev/input/by-path/platform-i8042-serio-0-event-kbd")
+  output (uinput-sink "Kmonad-Builtin-KBD"
+  "sleep 1 && setxkbmap -option compose:ralt")
+  cmp-seq ralt ;;
+  cmp-seq-delay 5 ;;
+  fallthrough true
+  )
+  (defalias
+    esc_ctl (tap-next-release esc lctl)
+  )
+
+  (defsrc
+    grv  1 2 3 4 5 6 7 8 9 0 - = bspc
+    tab  q w e r t y u i o p [ ] \
+    caps a s d f g h j k l ; ' ret
+    lsft z x c v b n m , . / rsft 
+                             pgup  up  pgdn
+    lctl lmet lalt  spc ralt rctl left down
+  )
+  (deflayer qwerty
+    grv  1    2      3      4      5      6 7 8       9      0    -    =    bspc
+    tab  q    w      e      r      t      y u i       o      p    [    ]    \
+    @esc_ctl a s d f g h j k  l ; ' ret
+    lsft      z      x      c      v     b n m , . / rsft 
+                             pgup  up  pgdn
+    lctl lmet lalt  spc bspc rctl left down
+  )
+        '';
+       };
+   };
+  };
 
   # Enable virtualisation
   virtualisation.docker = {
@@ -178,7 +232,7 @@
   };
 
   # Enable CUPS to print documents.
-  services.printing.enable = true;
+  #services.printing.enable = true;
 
   #enable thunderbolt
   services.hardware.bolt.enable=true;
@@ -197,8 +251,18 @@
     #media-session.enable = true;
   };
 
-  security.pam.services.swaylock = {};
   security.polkit.enable=true;
+
+  # Fingerprint Auth
+  services.fprintd = {
+    enable = true;
+    tod = {
+      enable = true;
+      #driver = pkgs.libfprint-2-tod1-goodix;
+      driver = pkgs.libfprint-2-tod1-goodix;
+    };
+  };
+
   services.blueman.enable = true;
   
   # enable redshift to manage screen color
@@ -278,6 +342,7 @@
   fprintd
   wine
   sleek-grub-theme
+  greetd.tuigreet
   (lutris.override {
     extraPkgs = pkgs: [
       wine
@@ -314,10 +379,6 @@
   # List services that you want to enable:
   
 
-  # Enable fprintd service:
-  services.fprintd = {
-    enable = true;
-  };
   # Enable swaywm
   programs.sway = {
     enable = true;

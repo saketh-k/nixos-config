@@ -8,35 +8,40 @@
     [ (modulesPath + "/installer/scan/not-detected.nix")
     ];
 
-  boot.initrd.availableKernelModules = [ "xhci_pci" "nvme" "usb_storage" "usbhid" "sd_mod" "rtsx_pci_sdmmc" ];
+  boot.kernelPackages = pkgs.linuxPackages_latest;
+
+  boot.initrd.availableKernelModules = [ "nvme" "xhci_pci" "thunderbolt" "usb_storage" "sd_mod" ];
   boot.initrd.kernelModules = [ ];
-  boot.kernelModules = [ "kvm-intel" ];
+  boot.kernelModules = [ "kvm-amd" ];
   boot.extraModulePackages = [ ];
 
   fileSystems."/" =
-    { device = "/dev/disk/by-uuid/3096ca48-fcc1-4d59-b559-c75c4110df85";
+    { device = "/dev/disk/by-uuid/1371e91a-de61-4d78-9f70-096a31ffa6b2";
       fsType = "ext4";
     };
 
+  boot.initrd.luks.devices."luks-6808d070-a936-45bc-8f06-06ce0e5bb315".device = "/dev/disk/by-uuid/6808d070-a936-45bc-8f06-06ce0e5bb315";
+
   fileSystems."/boot" =
-    { device = "/dev/disk/by-uuid/A7FD-4E11";
+    { device = "/dev/disk/by-uuid/04D0-05BA";
       fsType = "vfat";
       options = [ "fmask=0077" "dmask=0077" ];
     };
 
-  swapDevices = [ ];
+  swapDevices = [ 
+    {
+      device = "/var/lib/swapfile";
+      size = 72 * 1024;
+    }
+  ];
 
   # Enables DHCP on each ethernet and wireless interface. In case of scripted networking
   # (the default) this is the recommended approach. When using systemd-networkd it's
   # still possible to use this option, but it's recommended to use it in conjunction
   # with explicit per-interface declarations with `networking.interfaces.<interface>.useDHCP`.
   networking.useDHCP = lib.mkDefault true;
-  # networking.interfaces.wlp2s0.useDHCP = lib.mkDefault true;
+  # networking.interfaces.eth0.useDHCP = lib.mkDefault true;
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
-  hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
-  hardware.graphics = {
-    enable = true;
-    extraPackages = [ pkgs.mesa.drivers ];
-  };
+  hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
 }
