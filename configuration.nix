@@ -2,11 +2,12 @@
 # your system.  Help is available in the configuration.nix(5) man page 
 # and in the NixOS manual (accessible by running ‘nixos-help’).
 
-{ config, pkgs, lib,... }:
+{ config, pkgs, lib, inputs,... }:
 
 { imports =
     [ # Include the results of the hardware scan.
-      ./hardware-configuration.nix ];
+      ./hardware-configuration.nix
+    ];
 
   # Bootloader.
   boot.loader = {
@@ -26,6 +27,7 @@
         withBanner = "Select NixOS Generation";
       });
       fontSize = 32;
+      configurationLimit = 4;
     };
   };
 
@@ -33,7 +35,28 @@
   networking.nameservers = [ "1.1.1.1" "1.0.0.1" ];
   # networking.wireless.enable = true; # Enables wireless support via 
   # wpa_supplicant.
-
+  # openconnect vpn.uci.edu 
+    #--csd-wrapper /nix/store/cyqdz8wgf8ga11b3vv1k9sy52s8pkfdq-openconnect-9.12/libexec/openconnect/csd-post.sh 
+    #-u skarumur 
+    #--authgroup="UCIFULL-classic" 
+  # nixpkgs.overlays = [
+  #       (import "${builtins.fetchTarball { url = "https://github.com/jcszymansk/openconnect-sso/archive/master.tar.gz";sha256="08cqd40p9vld1liyl6qrsdrilzc709scyfghfzmmja3m1m7nym94";
+  #    }}/overlay.nix")
+  # ];
+  networking.openconnect.package = pkgs.openconnect;
+  networking.openconnect.interfaces = { 
+    tun_uci = {
+    autoStart = true;
+    gateway = "vpn.uci.edu";
+    user = "skarumur";
+    protocol = "anyconnect";
+    passwordFile = "/home/saketh/DELETE_EM";
+    extraOptions = {
+      authgroup="UCIFULL-classic";
+      csd-wrapper="${pkgs.openconnect}/libexec/openconnect/csd-post.sh";
+    };
+    
+  }; };
 
   # Configure network proxy if necessary networking.proxy.default = 
   # "http://user:password@proxy:port/"; networking.proxy.noProxy = 
@@ -41,20 +64,42 @@
 
   # Enable networking
   networking.networkmanager.enable = true;
+  networking.networkmanager.plugins = [pkgs.networkmanager-openconnect];
+  networking.useDHCP = true;
+  networking.dhcpcd.enable = false;
+  networking.resolvconf.dnsExtensionMechanism = false;
   systemd.network.wait-online.enable = false;
   boot.initrd.systemd.network.wait-online.enable = false;
+
+  # boot.supportedFilesystems = ["nfs"];
+  # fileSystems."/mnt/sakserv" = {
+  #   device = "truenas-scale.tapir-bleak.ts.net:/mnt/primary/jellyfin";
+  #   fsType = "nfs";
+  # };
 
   # Set your time zone.
   time.timeZone = "America/Los_Angeles";
 
   # Select internationalisation properties.
   i18n.defaultLocale = "en_US.UTF-8";
+  # Support Telugu
+  #i18n.supportedLocales = [ "en_US.UTF-8/UTF-8" "te_IN/UTF-8" ];
+  i18n.extraLocales = [ "te_IN/UTF-8" ];
+  i18n.inputMethod.type = "fcitx5";
+  i18n.inputMethod.enable = true;
+  i18n.inputMethod.fcitx5 = {
+    addons = with pkgs; [
+      fcitx5-gtk
+      fcitx5-m17n
+    ];
+    waylandFrontend = true;
+  };
 
   i18n.extraLocaleSettings = { LC_ADDRESS = "en_US.UTF-8"; 
     LC_IDENTIFICATION = "en_US.UTF-8"; LC_MEASUREMENT = "en_US.UTF-8"; 
     LC_MONETARY = "en_US.UTF-8"; LC_NAME = "en_US.UTF-8"; LC_NUMERIC = 
-    "en_US.UTF-8"; LC_PAPER = "en_US.UTF-8"; LC_TELEPHONE = 
-    "en_US.UTF-8"; LC_TIME = "en_US.UTF-8";
+    "te_IN"; LC_PAPER = "en_US.UTF-8"; LC_TELEPHONE = 
+    "en_US.UTF-8"; LC_TIME = "te_IN";
   };
 
   #Enable flakes
@@ -116,7 +161,7 @@
 
   # Enable the GNOME Desktop Environment.
   #services.xserver.displayManager.gdm.enable = true; 
-  services.xserver.desktopManager.gnome.enable = true;
+  services.desktopManager.gnome.enable = true;
   services.logind.extraConfig = ''
     IdleAction=sleep
     IdleActionSec=300
@@ -225,6 +270,9 @@
     rootless = {
       enable=true;
       setSocketVariable=true;
+      daemon.settings={ 
+      dns=["1.1.1.1"];
+    };
     };
     daemon.settings = { 
       dns=["1.1.1.1" "8.8.8.8"];
@@ -238,7 +286,7 @@
   services.hardware.bolt.enable=true;
 
   # Enable sound with pipewire.
-  hardware.pulseaudio.enable = false; security.rtkit.enable = true; 
+  services.pulseaudio.enable = false; security.rtkit.enable = true; 
   services.pipewire = {
     enable = true; alsa.enable = true; alsa.support32Bit = true; 
     pulse.enable = true;
@@ -293,6 +341,9 @@
   # services.udev.extraRules = ''
   #	KERNEL=="uinput", MODE="0660", GROUP="uinput", OPTIONS+="static_node=uinput"
   #  '';
+  services.udev.packages = [
+    pkgs.via
+  ];
 
   # Enable Tailscale
   services.tailscale.enable=true;
@@ -349,6 +400,8 @@
     ];
   })
   kmonad
+  openconnect
+  fcitx5
   ];
 
   programs.steam.enable = true;
@@ -358,12 +411,12 @@
     enable = true;
     polkitPolicyOwners = [ "saketh" ];
   };
+
   # Enable zen browser support for 1password!
 
   environment.etc ={
-    "1password/custom_allower_browsers" = {
+    "1password/custom_allowed_browsers" = {
       text = ''
-        .zen-wrapped
         zen
       '';
       mode="0755";
@@ -383,7 +436,6 @@
   programs.sway = {
     enable = true;
     wrapperFeatures.gtk = true;
-  
   };
   # Enable the OpenSSH daemon. 
   services.openssh.enable = true;
