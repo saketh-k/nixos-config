@@ -7,6 +7,9 @@
 { imports =
     [ # Include the results of the hardware scan.
       ./hardware-configuration.nix
+      ./services
+      ./modules
+
     ];
 
   # Bootloader.
@@ -43,6 +46,7 @@
   #       (import "${builtins.fetchTarball { url = "https://github.com/jcszymansk/openconnect-sso/archive/master.tar.gz";sha256="08cqd40p9vld1liyl6qrsdrilzc709scyfghfzmmja3m1m7nym94";
   #    }}/overlay.nix")
   # ];
+  # networking.interfaces.virbr0.ipv4.addresses = [ «thunk» «thunk» ];
   networking.openconnect.package = pkgs.openconnect;
   networking.openconnect.interfaces = { 
     tun_uci = {
@@ -110,6 +114,8 @@
   nix.extraOptions = ''
     builders-use-substitutes = true
     '';
+  nix.gc.automatic = true;
+  nix.gc.options = "--delete-older-than 30d";
   nix.buildMachines = [
     # {
     #   hostName = "durga.saketh.dev";
@@ -146,6 +152,7 @@
     IdentitiesOnly yes
     IdentityFile ~/.ssh/id_ed25519
   '';
+
 
   # enable resovled
   services.resolved = {
@@ -215,6 +222,7 @@
 
   # Set kmonad keymap with out of store symlink
   hardware.uinput.enable = true;
+  hardware.spacenavd.enable = true;
   # systemd.services.kmonad = {
   #  description = "Kmonad";
   #  wantedBy = [ "multi-user.target" ];
@@ -279,6 +287,17 @@
     };
   };
 
+  virtualisation.libvirtd.enable=true;
+  virtualisation.spiceUSBRedirection.enable=true;
+  # dconf.settings = {
+  #   "org/virt-manager/virt-manager/connections" = {
+  #     autoconnect = ["qemu:///system"];
+  #     uris = ["qemu:///system"];
+  #   };
+  # };
+
+  programs.virt-manager.enable=true;
+  users.groups.libvirtd.members = ["saketh"];
   # Enable CUPS to print documents.
   #services.printing.enable = true;
 
@@ -306,7 +325,6 @@
     enable = true;
     tod = {
       enable = true;
-      #driver = pkgs.libfprint-2-tod1-goodix;
       driver = pkgs.libfprint-2-tod1-goodix;
     };
   };
@@ -339,8 +357,8 @@
   #   RUN+="${pkgs.coreutils}/bin/chmod 666 /sys/class/backlight/intel_backlight/brightness"
   # '';
   # services.udev.extraRules = ''
-  #	KERNEL=="uinput", MODE="0660", GROUP="uinput", OPTIONS+="static_node=uinput"
-  #  '';
+  # SUBSYSTEM=="input", ATTRS{idVendor}=="046D", ATTRS{idProduct}=="C627", ENV{ID_INPUT_JOYSTICK}="1"
+  # '';
   services.udev.packages = [
     pkgs.via
   ];
@@ -354,13 +372,18 @@
   # create video group for light
   users.groups.video = {};
   users.groups.input = {};
-  
+
   # Define a user account. Don't forget to set a password with ‘passwd’.
   users.users.saketh = { isNormalUser = true; description = "Saketh k"; 
     extraGroups = [ "dialout" "networkmanager" "wheel" "video" "docker" "input" "uinput"]; packages = with pkgs; [
-    #  thunderbird
     ];
   };
+
+  users.groups.immich = {};
+  users.users.immich.group = "immich";
+  users.users.immich.isNormalUser = true;
+  users.users.immich.extraGroups = ["video" "render"];
+
 
   # Allow "wheel" group to be trusted-users:
   security.sudo.wheelNeedsPassword = false;
@@ -402,6 +425,8 @@
   kmonad
   openconnect
   fcitx5
+  virtiofsd
+  quickemu
   ];
 
   programs.steam.enable = true;
